@@ -2,8 +2,45 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 
 fn start_vm(cmd_arguments: &ArgMatches) {
     // Start a VM
+    // Can simply unwrap here because we know the arguments are required
     let name = cmd_arguments.get_one::<String>("name").unwrap();
+    let kernel = cmd_arguments.get_one::<String>("kernel").unwrap();
+    let disks: Vec<&str> = cmd_arguments
+        .get_many::<String>("disk")
+        .unwrap_or_default()
+        .map(|v| v.as_str())
+        .collect::<Vec<_>>();
+    let cpus = cmd_arguments.get_one::<String>("cpus").unwrap();
+    let memory = cmd_arguments.get_one::<String>("memory").unwrap();
+
     println!("Starting VM: {}", name);
+    println!("Kernel: {}", kernel);
+    println!("Disks: {:?}", disks);
+    println!("CPUs: {}", cpus);
+    println!("Memory: {}", memory);
+
+    let clh_command = std::process::Command::new("cloud-hypervisor")
+        .env("PATH", "/bin")
+        // .arg("-v")
+        .arg("--kernel")
+        .arg(kernel)
+        .arg("--disk")
+        .args(disks.iter().map(|d| format!("path={}", d)))
+        .arg("--cpus")
+        .arg(format!("boot={}", cpus))
+        .arg("--memory")
+        .arg(format!("size={}", memory))
+        .spawn();
+
+    let mut clh_process = match clh_command {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to start cloud-hypervisor: {}", e);
+            return;
+        }
+    };
+
+    let _ = clh_process.wait();
 }
 
 fn create_app() -> Command {
