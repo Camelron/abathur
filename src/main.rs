@@ -1,4 +1,9 @@
+pub mod daemon;
+
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use tokio::runtime::Runtime;
+use crate::daemon::server::server_main;
+
 
 fn start_vm(cmd_arguments: &ArgMatches) {
     // Start a VM
@@ -86,6 +91,21 @@ fn create_app() -> Command {
                         .help("amount of memory to allocate to the VM")
                         .default_value("2048M")
                 )
+        )
+        .subcommand(
+            Command::new("daemon")
+                .about("The Abathur daemon controlling persistent state and VM lifecycle")
+                .subcommand(
+                    Command::new("start")
+                        .about("Start the Abathur daemon")
+                        .arg(
+                            Arg::new("port")
+                                .short('p')
+                                .long("port")
+                                .help("Port to listen on")
+                                .default_value("4887")
+                        )
+                )
         );
 
     app
@@ -98,6 +118,19 @@ fn main() {
     match args.subcommand() {
         Some(("start", start_args)) => {
             start_vm(start_args);
+        }
+        Some(("daemon", daemon_args)) => {
+            match daemon_args.subcommand() {
+                Some(("start", start_args)) => {
+                    let rt = Runtime::new().unwrap();
+                    rt.block_on(async {
+                        server_main(start_args).await;
+                    });
+                }
+                _ => {
+                    let _ = cmd.print_help();
+                }
+            }
         }
         _ => {
             let _ = cmd.print_help();
