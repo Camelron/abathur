@@ -1,51 +1,60 @@
 pub mod daemon;
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use reqwest::{Client};
 use tokio::runtime::Runtime;
 use crate::daemon::server::server_main;
 
+const DEFAULT_PORT: &str = "4887";
+const DEFAULT_ADDRESS: &str = "127.0.0.1";
+
+async fn send_vm_to_server(vm: abathur::StartVm) {
+    let client = reqwest::Client::new();
+    let res = client.post(format!("http://{}:{}/start_vm", DEFAULT_ADDRESS, DEFAULT_PORT))
+        .json(&vm)
+        .send()
+        .await;
+
+    match res {
+        Ok(response) => {
+            if response.status().is_success() {
+                let body = response.text().await.unwrap();
+                println!("VM started successfully");
+                println!("{}", body);
+            } else {
+                eprintln!("Failed to start VM: {}", response.status());
+            }
+        }
+        Err(e) => {
+            eprintln!("Error sending request: {}", e);
+        }
+    }
+}
 
 fn start_vm(cmd_arguments: &ArgMatches) {
     // Start a VM
-    // Can simply unwrap here because we know the arguments are required
     let name = cmd_arguments.get_one::<String>("name").unwrap();
     let kernel = cmd_arguments.get_one::<String>("kernel").unwrap();
-    let disks: Vec<&str> = cmd_arguments
+    let disks: Vec<String> = cmd_arguments
         .get_many::<String>("disk")
         .unwrap_or_default()
-        .map(|v| v.as_str())
-        .collect::<Vec<_>>();
+        .map(|d| d.clone())
+        .collect::<Vec<String>>();
     let cpus = cmd_arguments.get_one::<String>("cpus").unwrap();
     let memory = cmd_arguments.get_one::<String>("memory").unwrap();
 
-    println!("Starting VM: {}", name);
-    println!("Kernel: {}", kernel);
-    println!("Disks: {:?}", disks);
-    println!("CPUs: {}", cpus);
-    println!("Memory: {}", memory);
-
-    let clh_command = std::process::Command::new("cloud-hypervisor")
-        .env("PATH", "/bin")
-        // .arg("-v")
-        .arg("--kernel")
-        .arg(kernel)
-        .arg("--disk")
-        .args(disks.iter().map(|d| format!("path={}", d)))
-        .arg("--cpus")
-        .arg(format!("boot={}", cpus))
-        .arg("--memory")
-        .arg(format!("size={}", memory))
-        .spawn();
-
-    let mut clh_process = match clh_command {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to start cloud-hypervisor: {}", e);
-            return;
-        }
+    let vm = abathur::StartVm {
+        name: name.to_string(),
+        kernel: kernel.to_string(),
+        disks: disks,
+        cpus: cpus.to_string(),
+        memory: memory.to_string(),
     };
 
-    let _ = clh_process.wait();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        send_vm_to_server(vm).await;
+    });
 }
 
 fn create_app() -> Command {
