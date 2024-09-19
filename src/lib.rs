@@ -25,6 +25,6 @@ pub enum VmState {
 #[derive(Debug)]
 pub struct VmContext {
     pub handle: VmHandle,
-    pub process: std::thread::JoinHandle<()>,
+    pub api_socket: String,
     pub state: VmState,
 }

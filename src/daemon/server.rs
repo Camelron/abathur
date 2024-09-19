@@ -18,6 +18,9 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
     println!("CPUs: {}", vm_args.cpus);
     println!("Memory: {}", vm_args.memory);
 
+    let guid = Uuid::new_v4().to_string();
+    let api_socket = format!("/tmp/abathur/clh/{}.sock", guid);
+
     let clh_command = std::process::Command::new("cloud-hypervisor")
         .env("PATH", "/bin")
         // .arg("-v")
@@ -29,32 +32,31 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
         .arg(format!("boot={}", vm_args.cpus.clone()))
         .arg("--memory")
         .arg(format!("size={}", vm_args.memory.clone()))
+        .arg("--api-socket")
+        .arg(api_socket.clone())
         .spawn();
 
     match clh_command {
         Ok(c) => {
-            let guid = Uuid::new_v4().to_string();
             let handle = abathur::VmHandle {
                 descriptor: vm_args.clone(),
                 guid: guid.clone(),
             };
-
-            let ret = handle.clone();
-            let vm_handles_thread = vm_handles.clone();
-            let guid_thread = guid.clone();
-            let thread_handle = std::thread::spawn(move || {
-                vm::vm_main(c, guid_thread, vm_handles_thread);
-            });
-
+            
             let context = abathur::VmContext {
-                handle: handle,
-                process: thread_handle,
+                handle: handle.clone(),
+                api_socket: api_socket,
                 state: abathur::VmState::Starting,
             };
-            
             vm_handles.lock().unwrap().insert(guid.clone(), context);
+
+            let vm_handles_thread = vm_handles.clone();
+            let guid_thread = guid.clone();
+            let _ = std::thread::spawn(move || {
+                vm::vm_main(c, guid_thread, vm_handles_thread);
+            });
             println!("Started cloud-hypervisor for VM with GUID: {}", guid);
-            return Ok(warp::reply::json(&ret));
+            return Ok(warp::reply::json(&handle));
         }
         Err(e) => {
             eprintln!("Failed to start cloud-hypervisor: {}", e);
