@@ -14,8 +14,17 @@ pub struct VmHandle {
     pub guid: String,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+pub enum VmState {
+    Starting,
+    Running,
+    Stopped,
+    Failed,
+}
+
 #[derive(Debug)]
 pub struct VmContext {
     pub handle: VmHandle,
     pub process: std::thread::JoinHandle<()>,
+    pub state: VmState,
 }

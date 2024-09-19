@@ -1,15 +1,14 @@
-pub mod daemon;
+mod daemon;
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use reqwest::{Client};
 use tokio::runtime::Runtime;
-use crate::daemon::server::server_main;
 
 const DEFAULT_PORT: &str = "4887";
 const DEFAULT_ADDRESS: &str = "127.0.0.1";
 
-async fn send_vm_to_server(vm: abathur::StartVm) {
-    let client = reqwest::Client::new();
+async fn post_vm(vm: abathur::StartVm) {
+    let client = Client::new();
     let res = client.post(format!("http://{}:{}/start_vm", DEFAULT_ADDRESS, DEFAULT_PORT))
         .json(&vm)
         .send()
@@ -74,7 +73,7 @@ fn start_vm(cmd_arguments: &ArgMatches) {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        send_vm_to_server(vm).await;
+        post_vm(vm).await;
     });
 }
 
@@ -176,7 +175,7 @@ fn main() {
                 Some(("start", start_args)) => {
                     let rt = Runtime::new().unwrap();
                     rt.block_on(async {
-                        server_main(start_args).await;
+                        daemon::daemon_main(start_args).await;
                     });
                 }
                 _ => {
