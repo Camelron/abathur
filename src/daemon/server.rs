@@ -46,7 +46,7 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
             
             let context = abathur::VmContext {
                 handle: handle.clone(),
-                api_socket: api_socket,
+                api_socket,
             };
             vm_handles.lock().unwrap().insert(guid.clone(), context);
 
@@ -56,13 +56,13 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
                 vm::vm_main(c, guid_thread, vm_handles_thread);
             });
             println!("Started cloud-hypervisor for VM with GUID: {}", guid);
-            return Ok(warp::reply::json(&handle));
+            Ok(warp::reply::json(&handle))
         }
         Err(e) => {
             eprintln!("Failed to start cloud-hypervisor: {}", e);
-            return Err(warp::reject::custom(CloudHypervisorFailed));
+            Err(warp::reject::custom(CloudHypervisorFailed))
         }
-    };
+    }
 }
 
 pub async fn list_vm(vm_handles: Arc<Mutex<HashMap<String, abathur::VmContext>>>) -> Result<impl warp::Reply, warp::Rejection> {
@@ -70,7 +70,7 @@ pub async fn list_vm(vm_handles: Arc<Mutex<HashMap<String, abathur::VmContext>>>
 
     let handles = vm_handles.lock().unwrap();
     let handles: Vec<abathur::VmHandle> = handles.values().map(|c| c.handle.clone()).collect();
-    return Ok(warp::reply::json(&handles));
+    Ok(warp::reply::json(&handles))
 }
 
 

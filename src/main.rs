@@ -70,8 +70,7 @@ fn start_vm(cmd_arguments: &ArgMatches) {
     let kernel = cmd_arguments.get_one::<String>("kernel").unwrap();
     let disks: Vec<String> = cmd_arguments
         .get_many::<String>("disk")
-        .unwrap_or_default()
-        .map(|d| d.clone())
+        .unwrap_or_default().cloned()
         .collect::<Vec<String>>();
     let cpus = cmd_arguments.get_one::<String>("cpus").unwrap();
     let memory = cmd_arguments.get_one::<String>("memory").unwrap();
@@ -79,7 +78,7 @@ fn start_vm(cmd_arguments: &ArgMatches) {
     let vm = abathur::StartVm {
         name: name.to_string(),
         kernel: kernel.to_string(),
-        disks: disks,
+        disks,
         cpus: cpus.to_string(),
         memory: memory.to_string(),
     };
@@ -91,7 +90,9 @@ fn start_vm(cmd_arguments: &ArgMatches) {
 }
 
 fn create_app() -> Command {
-    let app = Command::new("abathur")
+    
+
+    Command::new("abathur")
         .version("0.1.0")
         .about("Abathur: a simple VM orchestrator")
         .arg_required_else_help(true)
@@ -157,9 +158,7 @@ fn create_app() -> Command {
                                 .default_value("4887")
                         )
                 )
-        );
-
-    app
+        )
 }
 
 fn main() {
