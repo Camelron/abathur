@@ -26,5 +26,7 @@ pub enum VmState {
 #[derive(Debug)]
 pub struct VmContext {
     pub handle: VmHandle,
-    pub api_socket: String
+    pub api_socket: String,
+    pub stdin: std::process::ChildStdin,
+    pub stdout: std::process::ChildStdout,
 }

@@ -4,6 +4,7 @@ use uuid::Uuid;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::process::{Stdio};
 
 #[derive(Debug)]
 struct CloudHypervisorFailed;
@@ -34,10 +35,15 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
         .arg(format!("size={}", vm_args.memory.clone()))
         .arg("--api-socket")
         .arg(api_socket.clone())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
         .spawn();
 
     match clh_child {
-        Ok(c) => {
+        Ok(mut c) => {
+            let stdin = c.stdin.take().unwrap();
+            let stdout = c.stdout.take().unwrap();
+
             let handle = abathur::VmHandle {
                 descriptor: vm_args.clone(),
                 guid: guid.clone(),
@@ -47,6 +53,8 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
             let context = abathur::VmContext {
                 handle: handle.clone(),
                 api_socket,
+                stdin,
+                stdout
             };
             vm_handles.lock().unwrap().insert(guid.clone(), context);
 
