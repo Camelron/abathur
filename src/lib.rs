@@ -12,6 +12,7 @@ pub struct StartVm {
 pub struct VmHandle {
     pub descriptor: StartVm,
     pub guid: String,
+    pub state: VmState
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
@@ -25,6 +26,5 @@ pub enum VmState {
 #[derive(Debug)]
 pub struct VmContext {
     pub handle: VmHandle,
-    pub api_socket: String,
-    pub state: VmState,
+    pub api_socket: String
 }

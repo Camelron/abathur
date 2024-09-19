@@ -21,7 +21,7 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
     let guid = Uuid::new_v4().to_string();
     let api_socket = format!("/tmp/abathur/clh/{}.sock", guid);
 
-    let clh_command = std::process::Command::new("cloud-hypervisor")
+    let clh_child = std::process::Command::new("cloud-hypervisor")
         .env("PATH", "/bin")
         // .arg("-v")
         .arg("--kernel")
@@ -36,17 +36,17 @@ pub async fn start_vm(vm_args: abathur::StartVm, vm_handles: Arc<Mutex<HashMap<S
         .arg(api_socket.clone())
         .spawn();
 
-    match clh_command {
+    match clh_child {
         Ok(c) => {
             let handle = abathur::VmHandle {
                 descriptor: vm_args.clone(),
                 guid: guid.clone(),
+                state: abathur::VmState::Starting,
             };
             
             let context = abathur::VmContext {
                 handle: handle.clone(),
                 api_socket: api_socket,
-                state: abathur::VmState::Starting,
             };
             vm_handles.lock().unwrap().insert(guid.clone(), context);
 

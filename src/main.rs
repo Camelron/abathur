@@ -1,5 +1,6 @@
 mod daemon;
 
+use prettytable::{Table, row};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use reqwest::{Client};
 use tokio::runtime::Runtime;
@@ -40,7 +41,19 @@ async fn list_vms() {
         Ok(response) => {
             if response.status().is_success() {
                 let body = response.text().await.unwrap();
-                println!("{}", body);
+                let vms: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+                
+                let mut table = Table::new();
+                table.add_row(row!["Name", "GUID", "State"]);
+
+                for vm in vms {
+                    let name = vm["descriptor"]["name"].as_str().unwrap();
+                    let guid = vm["guid"].as_str().unwrap();
+                    let state = vm["state"].as_str().unwrap();
+                    table.add_row(row![name, guid, state]);
+                }
+
+                table.printstd();
             } else {
                 eprintln!("Failed to list VMs: {}", response.status());
             }
