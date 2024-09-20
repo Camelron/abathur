@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+use std::sync::Arc;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct StartVm {
@@ -27,6 +29,6 @@ pub enum VmState {
 pub struct VmContext {
     pub handle: VmHandle,
     pub api_socket: String,
-    pub stdin: std::process::ChildStdin,
-    pub stdout: std::process::ChildStdout,
+    pub stdin: Arc<Mutex<std::process::ChildStdin>>,
+    pub stdout: Arc<Mutex<std::process::ChildStdout>>,
 }
