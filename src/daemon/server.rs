@@ -23,7 +23,7 @@ pub async fn handle_socket(ws: WebSocket, guid: String, vm_handles: Arc<Mutex<Ha
     let vm_context = {
         let map = vm_handles.lock().unwrap();
         match map.get(&guid) {
-            Some(context) => context.clone(),
+            Some(context) => (*context).clone(),
             None => {
                 eprintln!("VM with GUID {} not found", guid);
                 return; // or handle the error appropriately

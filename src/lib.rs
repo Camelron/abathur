@@ -25,7 +25,7 @@ pub enum VmState {
     Failed,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct VmContext {
     pub handle: VmHandle,
     pub api_socket: String,
